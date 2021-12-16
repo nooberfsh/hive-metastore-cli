@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 thrift = "0.15"
+thiserror = "1.0"
+tokio = { version = "1.15.0", features = ["full"] }
