@@ -13,7 +13,7 @@ pub (crate) mod fb303;
 pub (crate) mod hive_metastore;
 mod models;
 pub use models::*;
-use crate::hive_metastore::TThriftHiveMetastoreSyncClient;
+use crate::hive_metastore::{FieldSchema, TThriftHiveMetastoreSyncClient};
 
 
 pub struct HiveMetastoreCli {
@@ -23,7 +23,9 @@ pub struct HiveMetastoreCli {
 #[derive(Error, Debug)]
 pub enum HiveMetastoreError {
     #[error("thrift error")]
-    ThriftError(#[from] ThriftError)
+    ThriftError(#[from] ThriftError),
+    #[error("request table, bug the target is a view: {0}.{1}")]
+    ViewInsteadOfTable(String, String),
 }
 
 type Result<T> = std::result::Result<T, HiveMetastoreError>;
@@ -49,9 +51,44 @@ impl HiveMetastoreCli {
 // API
 
 impl HiveMetastoreCli {
-    pub async fn get_table_info(&mut self, db: &str, tbl: &str) -> Result<TableInfo> {
+    pub async fn get_table(&mut self, db: &str, tbl: &str) -> Result<Table> {
+        let table = self.client.get_table(db.to_string(), tbl.to_string())?;
+        if !table.view_original_text.unwrap_or_else(||String::new()).trim().is_empty() {
+            return Err(HiveMetastoreError::ViewInsteadOfTable(db.to_string(), tbl.to_string()));
+        }
+        let db_name = table.db_name.unwrap();
+        let tbl_name = table.table_name.unwrap();
+        let columns = table.sd.unwrap().cols.unwrap().into_iter().map(|t| t.into()).collect();
+        let partitions = table.partition_keys.unwrap_or_else(|| vec![]).into_iter().map(|t| t.into()).collect();
+        Ok(Table {db_name, tbl_name, columns, partitions})
+    }
+
+    pub async fn test(&mut self, db: &str, tbl: &str) -> Result<()> {
         let tbl = self.client.get_table(db.to_string(), tbl.to_string())?;
+
         println!("{:?}", tbl);
-        Ok(TableInfo{})
+        Ok(())
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// helpers
+impl From<FieldSchema> for Column {
+    fn from(f: FieldSchema) -> Self {
+        Column {
+            name: f.name.unwrap(),
+            ty: f.type_.unwrap(),
+            comment: f.comment.unwrap_or_else(||String::new()),
+        }
+    }
+}
+
+impl From<FieldSchema> for Partition {
+    fn from(f: FieldSchema) -> Self {
+        Partition {
+            name: f.name.unwrap(),
+            ty: f.type_.unwrap(),
+            comment: f.comment.unwrap_or_else(||String::new()),
+        }
     }
 }

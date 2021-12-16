@@ -9,3 +9,7 @@ edition = "2021"
 thrift = "0.15"
 thiserror = "1.0"
 tokio = { version = "1.15.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"]}
+
+[dev-dependencies]
+serde_json = "1.0"
