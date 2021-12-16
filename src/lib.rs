@@ -7,14 +7,15 @@ use thrift::transport::{
 };
 use thrift::Error as ThriftError;
 
-use hive_metastore::ThriftHiveMetastoreSyncClient;
+use crate::hive_metastore::{
+    FieldSchema, TThriftHiveMetastoreSyncClient, ThriftHiveMetastoreSyncClient,
+};
 
 #[allow(unused)]
 pub(crate) mod fb303;
 #[allow(unused)]
 pub(crate) mod hive_metastore;
 mod models;
-use crate::hive_metastore::{FieldSchema, TThriftHiveMetastoreSyncClient};
 pub use models::*;
 
 pub struct HiveMetastoreCli {
@@ -70,20 +71,8 @@ impl HiveMetastoreCli {
         }
         let db_name = table.db_name.unwrap();
         let tbl_name = table.table_name.unwrap();
-        let columns = table
-            .sd
-            .unwrap()
-            .cols
-            .unwrap()
-            .into_iter()
-            .map(|t| t.into())
-            .collect();
-        let partitions = table
-            .partition_keys
-            .unwrap_or_else(|| vec![])
-            .into_iter()
-            .map(|t| t.into())
-            .collect();
+        let columns = trans_field_schemas(table.sd.unwrap().cols);
+        let partitions = trans_field_schemas(table.partition_keys);
         Ok(Table {
             db_name,
             tbl_name,
@@ -129,4 +118,12 @@ impl From<FieldSchema> for Partition {
             comment: f.comment.unwrap_or_else(|| String::new()),
         }
     }
+}
+
+fn trans_field_schemas<T: From<FieldSchema>>(fields: Option<Vec<FieldSchema>>) -> Vec<T> {
+    fields
+        .unwrap_or_else(|| vec![])
+        .into_iter()
+        .map(|t| t.into())
+        .collect()
 }
