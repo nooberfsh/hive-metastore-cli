@@ -22,8 +22,8 @@ pub struct HiveMetastoreCli {
 
 #[derive(Error, Debug)]
 pub enum HiveMetastoreError {
-    #[error("thrift error")]
-    ThriftError(#[from] ThriftError),
+    #[error("thrift error: {0}")]
+    ThriftError(String),
     #[error("request table, bug the target is a view: {0}.{1}")]
     ViewInsteadOfTable(String, String),
 }
@@ -63,16 +63,25 @@ impl HiveMetastoreCli {
         Ok(Table {db_name, tbl_name, columns, partitions})
     }
 
-    pub async fn test(&mut self, db: &str, tbl: &str) -> Result<()> {
-        let tbl = self.client.get_table(db.to_string(), tbl.to_string())?;
+    pub async fn get_all_tables(&mut self, db: &str) -> Result<Vec<String>> {
+        let tables = self.client.get_all_tables(db.to_string())?;
+        Ok(tables)
+    }
 
-        println!("{:?}", tbl);
-        Ok(())
+    pub async fn get_all_databases(&mut self) -> Result<Vec<String>> {
+        let dbs = self.client.get_all_databases()?;
+        Ok(dbs)
     }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // helpers
+impl From<ThriftError> for HiveMetastoreError {
+    fn from(e: ThriftError) -> Self {
+        HiveMetastoreError::ThriftError(e.to_string())
+    }
+}
+
 impl From<FieldSchema> for Column {
     fn from(f: FieldSchema) -> Self {
         Column {
