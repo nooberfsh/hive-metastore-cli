@@ -1,8 +1,8 @@
 use std::net::ToSocketAddrs;
 
 use thiserror::Error;
-use thrift::protocol::{TCompactInputProtocol, TCompactOutputProtocol};
-use thrift::transport::{ReadHalf, TFramedReadTransport, TFramedWriteTransport, TIoChannel, TTcpChannel, WriteHalf};
+use thrift::protocol::{TBinaryInputProtocol, TBinaryOutputProtocol};
+use thrift::transport::{ReadHalf, TBufferedReadTransport, TBufferedWriteTransport, TIoChannel, TTcpChannel, WriteHalf};
 use thrift::Error as ThriftError;
 
 use hive_metastore::{ThriftHiveMetastoreSyncClient};
@@ -17,7 +17,7 @@ use crate::hive_metastore::TThriftHiveMetastoreSyncClient;
 
 
 pub struct HiveMetastoreCli {
-    client: ThriftHiveMetastoreSyncClient<TCompactInputProtocol<TFramedReadTransport<ReadHalf<TTcpChannel>>>, TCompactOutputProtocol<TFramedWriteTransport<WriteHalf<TTcpChannel>>>>,
+    client: ThriftHiveMetastoreSyncClient<TBinaryInputProtocol<TBufferedReadTransport<ReadHalf<TTcpChannel>>>, TBinaryOutputProtocol<TBufferedWriteTransport<WriteHalf<TTcpChannel>>>>,
 }
 
 #[derive(Error, Debug)]
@@ -36,8 +36,8 @@ impl HiveMetastoreCli {
         let (i_chan, o_chan) = c.split()?;
 
         // build the input/output protocol
-        let i_prot = TCompactInputProtocol::new(TFramedReadTransport::new(i_chan));
-        let o_prot = TCompactOutputProtocol::new(TFramedWriteTransport::new(o_chan));
+        let i_prot = TBinaryInputProtocol::new(TBufferedReadTransport::new(i_chan), true);
+        let o_prot = TBinaryOutputProtocol::new(TBufferedWriteTransport::new(o_chan), true);
 
         // use the input/output protocol to create a Thrift client
         let client = ThriftHiveMetastoreSyncClient::new(i_prot, o_prot);
