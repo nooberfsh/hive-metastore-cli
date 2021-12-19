@@ -9,3 +9,8 @@ edition = "2021"
 hive-metastore-cli = { path = "../hive-metastore-cli" }
 tokio = { version = "1.15.0", features = ["full"] }
 axum = "0.4.2"
+serde = { version = "1.0", features = ["derive"]}
+tracing = "0.1.29"
+tracing-subscriber = "0.3.3"
+anyhow = "1.0.51"
+toml = "0.5.8"
