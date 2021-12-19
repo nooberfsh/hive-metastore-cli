@@ -8,7 +8,7 @@ async fn main() {
     println!("{}", s);
     let dbs = cli.get_all_databases().await.unwrap();
     println!("{}", dbs.join(","));
-    let tables = cli.get_all_tables("ads").await.unwrap();
+    let tables = cli.get_all_tables("dwd").await.unwrap();
     println!("{}", tables.join(","));
     //cli.test("dm_fumeiti", "ads_prod_fusion_95top_avg_md").await.unwrap();
 }
