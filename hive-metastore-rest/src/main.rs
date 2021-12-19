@@ -1,9 +1,9 @@
-use axum::{routing::post, Json, Router, AddExtensionLayer};
-use serde::{Deserialize, Serialize};
 use anyhow::Result;
+use axum::{routing::post, AddExtensionLayer, Json, Router};
+use serde::{Deserialize, Serialize};
 
-use hive_metastore_cli::*;
 use axum::extract::Extension;
+use hive_metastore_cli::*;
 
 mod config;
 
@@ -35,17 +35,25 @@ fn to_resp<T: Serialize>(res: Result<T, HiveMetastoreError>) -> Json<Result<T, S
     Json(res)
 }
 
-async fn get_table(Extension(client): Extension<HiveMetastoreCli>, Json(payload): Json<GetTableReq>) -> Json<Result<Table, String>>{
+async fn get_table(
+    Extension(client): Extension<HiveMetastoreCli>,
+    Json(payload): Json<GetTableReq>,
+) -> Json<Result<Table, String>> {
     let res = client.get_table(&payload.db, &payload.tbl).await;
     to_resp(res)
 }
 
-async fn get_all_tables(Extension(client): Extension<HiveMetastoreCli>, Json(payload): Json<GetAllTablesReq>) -> Json<Result<Vec<String>, String>> {
+async fn get_all_tables(
+    Extension(client): Extension<HiveMetastoreCli>,
+    Json(payload): Json<GetAllTablesReq>,
+) -> Json<Result<Vec<String>, String>> {
     let res = client.get_all_tables(&payload.db).await;
     to_resp(res)
 }
 
-async fn get_all_databases(Extension(client): Extension<HiveMetastoreCli>) -> Json<Result<Vec<String>, String>> {
+async fn get_all_databases(
+    Extension(client): Extension<HiveMetastoreCli>,
+) -> Json<Result<Vec<String>, String>> {
     let res = client.get_all_databases().await;
     to_resp(res)
 }

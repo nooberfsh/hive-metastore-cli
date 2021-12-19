@@ -22,10 +22,14 @@ pub use models::*;
 
 #[derive(Clone)]
 pub struct HiveMetastoreCli {
-    client: Arc<Mutex<ThriftHiveMetastoreSyncClient<
-        TBinaryInputProtocol<TBufferedReadTransport<ReadHalf<TTcpChannel>>>,
-        TBinaryOutputProtocol<TBufferedWriteTransport<WriteHalf<TTcpChannel>>>,
-    >>>,
+    client: Arc<
+        Mutex<
+            ThriftHiveMetastoreSyncClient<
+                TBinaryInputProtocol<TBufferedReadTransport<ReadHalf<TTcpChannel>>>,
+                TBinaryOutputProtocol<TBufferedWriteTransport<WriteHalf<TTcpChannel>>>,
+            >,
+        >,
+    >,
 }
 
 #[derive(Error, Debug)]
@@ -51,7 +55,9 @@ impl HiveMetastoreCli {
 
         // use the input/output protocol to create a Thrift client
         let client = ThriftHiveMetastoreSyncClient::new(i_prot, o_prot);
-        Ok(HiveMetastoreCli { client: Arc::new(Mutex::new(client)) })
+        Ok(HiveMetastoreCli {
+            client: Arc::new(Mutex::new(client)),
+        })
     }
 }
 
