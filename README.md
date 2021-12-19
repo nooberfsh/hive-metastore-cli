@@ -1,1 +1,1 @@
-# Hive Metastore Client
+# Hive Metastore Client & Server
