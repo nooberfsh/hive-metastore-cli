@@ -1,4 +1,5 @@
 use std::net::ToSocketAddrs;
+use std::sync::Arc;
 
 use thiserror::Error;
 use thrift::protocol::{TBinaryInputProtocol, TBinaryOutputProtocol};
@@ -6,6 +7,7 @@ use thrift::transport::{
     ReadHalf, TBufferedReadTransport, TBufferedWriteTransport, TIoChannel, TTcpChannel, WriteHalf,
 };
 use thrift::Error as ThriftError;
+use tokio::sync::Mutex;
 
 use crate::hive_metastore::{
     FieldSchema, TThriftHiveMetastoreSyncClient, ThriftHiveMetastoreSyncClient,
@@ -18,11 +20,12 @@ pub(crate) mod hive_metastore;
 mod models;
 pub use models::*;
 
+#[derive(Clone)]
 pub struct HiveMetastoreCli {
-    client: ThriftHiveMetastoreSyncClient<
+    client: Arc<Mutex<ThriftHiveMetastoreSyncClient<
         TBinaryInputProtocol<TBufferedReadTransport<ReadHalf<TTcpChannel>>>,
         TBinaryOutputProtocol<TBufferedWriteTransport<WriteHalf<TTcpChannel>>>,
-    >,
+    >>>,
 }
 
 #[derive(Error, Debug)]
@@ -48,7 +51,7 @@ impl HiveMetastoreCli {
 
         // use the input/output protocol to create a Thrift client
         let client = ThriftHiveMetastoreSyncClient::new(i_prot, o_prot);
-        Ok(HiveMetastoreCli { client })
+        Ok(HiveMetastoreCli { client: Arc::new(Mutex::new(client)) })
     }
 }
 
@@ -56,8 +59,9 @@ impl HiveMetastoreCli {
 // API
 
 impl HiveMetastoreCli {
-    pub async fn get_table(&mut self, db: &str, tbl: &str) -> Result<Table> {
-        let table = self.client.get_table(db.to_string(), tbl.to_string())?;
+    pub async fn get_table(&self, db: &str, tbl: &str) -> Result<Table> {
+        let mut cli = self.client.lock().await;
+        let table = cli.get_table(db.to_string(), tbl.to_string())?;
         if !table
             .view_original_text
             .unwrap_or_else(|| String::new())
@@ -81,13 +85,15 @@ impl HiveMetastoreCli {
         })
     }
 
-    pub async fn get_all_tables(&mut self, db: &str) -> Result<Vec<String>> {
-        let tables = self.client.get_all_tables(db.to_string())?;
+    pub async fn get_all_tables(&self, db: &str) -> Result<Vec<String>> {
+        let mut cli = self.client.lock().await;
+        let tables = cli.get_all_tables(db.to_string())?;
         Ok(tables)
     }
 
-    pub async fn get_all_databases(&mut self) -> Result<Vec<String>> {
-        let dbs = self.client.get_all_databases()?;
+    pub async fn get_all_databases(&self) -> Result<Vec<String>> {
+        let mut cli = self.client.lock().await;
+        let dbs = cli.get_all_databases()?;
         Ok(dbs)
     }
 }
