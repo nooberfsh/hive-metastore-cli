@@ -24,7 +24,7 @@ async fn main() -> Result<()> {
 
     // run our app with hyper
     // `axum::Server` is a re-export of `hyper::Server`
-    tracing::debug!("listening on {}", config.rest.addr);
+    tracing::info!("listening on {}", config.rest.addr);
     axum::Server::bind(&config.rest.addr)
         .serve(app.into_make_service())
         .await?;
