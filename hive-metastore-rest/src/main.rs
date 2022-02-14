@@ -17,6 +17,7 @@ async fn main() -> Result<()> {
 
     let app = Router::new()
         .route("/get_table", post(get_table))
+        .route("/table_or_view_exists", post(table_or_view_exists))
         .route("/get_all_tables", post(get_all_tables))
         .route("/get_all_databases", post(get_all_databases))
         .layer(AddExtensionLayer::new(client));
@@ -40,6 +41,14 @@ async fn get_table(
     Json(payload): Json<GetTableReq>,
 ) -> Json<Result<Table, String>> {
     let res = client.get_table(&payload.db, &payload.tbl).await;
+    to_resp(res)
+}
+
+async fn table_or_view_exists(
+    Extension(client): Extension<HiveMetastoreCli>,
+    Json(payload): Json<GetTableReq>,
+) -> Json<Result<bool, String>> {
+    let res = client.table_or_view_exists(&payload.db, &payload.tbl).await;
     to_resp(res)
 }
 

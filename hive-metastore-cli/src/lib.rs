@@ -91,6 +91,22 @@ impl HiveMetastoreCli {
         })
     }
 
+    pub async fn table_or_view_exists(&self, db: &str, tbl: &str) -> Result<bool> {
+        let mut cli = self.client.lock().await;
+        match cli.get_table(db.to_string(), tbl.to_string()) {
+            Ok(_) => Ok(true),
+            Err(e) => {
+                // TODO: this is rather hacky...
+                let desc = e.to_string();
+                if desc.ends_with("NoSuchObjectException") {
+                    Ok(false)
+                } else {
+                    Err(e.into())
+                }
+            }
+        }
+    }
+
     pub async fn get_all_tables(&self, db: &str) -> Result<Vec<String>> {
         let mut cli = self.client.lock().await;
         let tables = cli.get_all_tables(db.to_string())?;
